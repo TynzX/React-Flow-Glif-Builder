@@ -1,6 +1,13 @@
 import React, { useState } from 'react';
 
 export function NodeProperties({ nodeType, properties, onChange, output, nodeName, onNameChange }) {
+  console.log('NodeProperties render:', {
+    nodeType,
+    properties,
+    output,
+    nodeName
+  });
+
   const [isOpen, setIsOpen] = useState(false);
 
   const handleNameChange = (newName) => {
@@ -82,68 +89,58 @@ export function NodeProperties({ nodeType, properties, onChange, output, nodeNam
   };
 
   const renderOutput = () => {
-    if (!output) return null;
-
+    const outputValue = output || properties.output;
+    
+    if (!outputValue) return null;
+    
     switch (nodeType.id) {
       case 'text-generation':
         return (
-          <textarea
-            className="w-full h-32 p-2 border rounded bg-gray-50 font-mono text-sm"
-            value={typeof output === 'object' ? JSON.stringify(output, null, 2) : output}
-            readOnly
-          />
+          <div className="p-4 border-t border-gray-200">
+            <h4 className="font-medium text-sm mb-2">Output:</h4>
+            <textarea
+              key={JSON.stringify(outputValue)}
+              className="w-full h-32 p-2 border rounded bg-gray-50 font-mono text-sm"
+              value={typeof outputValue === 'object' ? JSON.stringify(outputValue, null, 2) : outputValue}
+              readOnly
+            />
+          </div>
         );
+      
       case 'image-generation':
         return (
           <div className="space-y-2">
-            <textarea
-              className="w-full h-20 p-2 border rounded bg-gray-50 font-mono text-sm"
-              value={typeof output === 'object' ? JSON.stringify(output, null, 2) : output}
-              readOnly
-            />
-            {output?.url && (
-              <img
-                src={output.url}
-                alt="Generated"
-                className="max-w-full h-auto rounded"
+            {outputValue?.url && (
+              <img 
+                key={outputValue.url}
+                src={outputValue.url} 
+                alt="Generated" 
+                className="w-full rounded"
               />
             )}
           </div>
         );
-      case 'video-generation':
-        return (
-          <div className="space-y-2">
-            <textarea
-              className="w-full h-20 p-2 border rounded bg-gray-50 font-mono text-sm"
-              value={typeof output === 'object' ? JSON.stringify(output, null, 2) : output}
-              readOnly
-            />
-            {output?.url && (
-              <video
-                controls
-                className="max-w-full h-auto rounded"
-                src={output.url}
-              />
-            )}
-          </div>
-        );
+      
       case 'audio-generation':
         return (
           <div className="space-y-2">
             <textarea
+              key={JSON.stringify(outputValue)}
               className="w-full h-20 p-2 border rounded bg-gray-50 font-mono text-sm"
-              value={typeof output === 'object' ? JSON.stringify(output, null, 2) : output}
+              value={typeof outputValue === 'object' ? JSON.stringify(outputValue, null, 2) : outputValue}
               readOnly
             />
-            {output?.url && (
+            {outputValue?.url && (
               <audio
+                key={outputValue.url}
                 controls
                 className="w-full"
-                src={output.url}
+                src={outputValue.url}
               />
             )}
           </div>
         );
+      
       default:
         return null;
     }

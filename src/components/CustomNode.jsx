@@ -13,6 +13,7 @@ export const CustomNode = memo(function CustomNode({ data, selected }) {
   const [output, setOutput] = useState(null);
   const setNodeOutput = useFlowStore(state => state.setNodeOutput);
   const getNodeOutput = useFlowStore(state => state.getNodeOutput);
+  const handleNodeRun = useFlowStore(state => state.handleNodeRun);
 
   const getInputFromConnectedNode = () => {
     const incomingEdges = edges.filter(edge => edge.target === data.id);
@@ -246,6 +247,12 @@ export const CustomNode = memo(function CustomNode({ data, selected }) {
     }
   }, []);
 
+  const onRunClick = useCallback(async () => {
+    if (handleNodeRun) {
+      await handleNodeRun(data.id);
+    }
+  }, [handleNodeRun, data.id]);
+
   return (
     <div
       className={`bg-white rounded-lg shadow-lg border-2 min-w-[300px] ${
@@ -274,7 +281,7 @@ export const CustomNode = memo(function CustomNode({ data, selected }) {
         }}
       />
 
-      <Button onClick={handleRun} className="m-4">
+      <Button onClick={onRunClick} className="m-4">
         Run
       </Button>
 
