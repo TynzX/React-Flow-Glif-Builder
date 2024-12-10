@@ -281,9 +281,9 @@ export const CustomNode = memo(function CustomNode({ data, selected }) {
         }}
       />
 
-      <Button onClick={onRunClick} className="m-4">
+      {/* <Button onClick={onRunClick} className="m-4">
         Run
-      </Button>
+      </Button> */}
 
       {Array.from({ length: nodeType.inputs }).map((_, i) => (
         <Handle

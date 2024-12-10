@@ -1,7 +1,7 @@
 export const nodeTypes = [
   {
     id: 'text-generation',
-    name: 'Text Generation (LLM)',
+    name: 'Text Generation',
     description: 'Generate text using various language models',
     icon: '💭',
     inputs: 1,

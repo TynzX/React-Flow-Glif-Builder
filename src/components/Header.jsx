@@ -3,6 +3,7 @@ import { Play, Plus } from 'lucide-react';
 import { Button } from './ui/Button';
 import { useFlowStore } from '../store/flowStore';
 import axios from 'axios';
+import { Spinner } from './ui/Spinner';
 
 export function Header({ onAddNode }) {
   const [isRunning, setIsRunning] = useState(false);
@@ -129,6 +130,31 @@ export function Header({ onAddNode }) {
   };
 
   const handleRun = async () => {
+    // Check if there are any nodes
+    if (nodes.length === 0) {
+      alert('Please add at least one node to the canvas before running the flow.');
+      return;
+    }
+
+    // Check for blank prompts
+    const nodeWithBlankPrompt = nodes.find(node => {
+      const properties = node.data.properties || {};
+      // Check for text-generation and image-generation nodes
+      if (['text-generation', 'image-generation'].includes(node.data.type)) {
+        return !properties.prompt || properties.prompt.trim() === '';
+      }
+      // Check for audio-generation nodes
+      if (node.data.type === 'audio-generation') {
+        return !properties.text || properties.text.trim() === '';
+      }
+      return false;
+    });
+
+    if (nodeWithBlankPrompt) {
+      alert(`Please fill in the required prompt for node "${nodeWithBlankPrompt.data.name || 'Unnamed Node'}"`);
+      return;
+    }
+
     setIsRunning(true);
     try {
       // Sort nodes based on dependencies
@@ -155,11 +181,20 @@ export function Header({ onAddNode }) {
         <h1 className="text-xl font-semibold">GLIF Builder</h1>
         <Button 
           onClick={handleRun} 
-          className="bg-black hover:bg-gray-800"
+          className="bg-black hover:bg-gray-800 min-w-[120px]"
           disabled={isRunning}
         >
-          <Play className="w-4 h-4 mr-2" />
-          {isRunning ? 'Running...' : 'Run Flow'}
+          {isRunning ? (
+            <>
+              <Spinner />
+              Processing...
+            </>
+          ) : (
+            <>
+              <Play className="w-4 h-4 mr-2" />
+              Run Flow
+            </>
+          )}
         </Button>
       </div>
       <Button onClick={onAddNode} className="flex items-center gap-2">
