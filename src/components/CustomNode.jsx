@@ -219,13 +219,53 @@ export const CustomNode = memo(function CustomNode({ data, selected }) {
     }
   };
 
+  const handleVideoComposition = async () => {
+    try {
+      const processedProperties = processPromptWithInput(data.properties);
+      const response = await axios.post('http://localhost:3000/video-composition', {
+        ...processedProperties,
+        nodeId: data.id,
+        nodeType: data.type
+      }, {
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      let result;
+      if (typeof response.data === 'string') {
+        try {
+          result = JSON.parse(response.data);
+        } catch (parseError) {
+          result = { url: response.data };
+        }
+      } else {
+        result = response.data;
+      }
+      
+      setOutput(result);
+      setNodeOutput(data.id, result);
+      data.onChange?.({ ...data.properties, output: result });
+      console.log('Video Composition Response:', result);
+      return result;
+    } catch (error) {
+      const errorMessage = `Error: ${error.response?.data || error.message}`;
+      setOutput(errorMessage);
+      setNodeOutput(data.id, errorMessage);
+      data.onChange?.({ ...data.properties, output: errorMessage });
+      console.error('Video Composition Error:', error);
+      throw error;
+    }
+  };
+
   const handleRun = async () => {
     try {
       const handlers = {
         'text-generation': handleTextGeneration,
         'image-generation': handleImageGeneration,
         'video-generation': handleVideoGeneration,
-        'audio-generation': handleAudioGeneration
+        'audio-generation': handleAudioGeneration,
+        'video-composition': handleVideoComposition
       };
 
       const handler = handlers[data.type];

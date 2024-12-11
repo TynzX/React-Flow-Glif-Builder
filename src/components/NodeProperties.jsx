@@ -141,6 +141,23 @@ export function NodeProperties({ nodeType, properties, onChange, output, nodeNam
           </div>
         );
       
+      case 'video-composition':
+        return (
+          <div className="space-y-2">
+            {outputValue?.url && (
+              <video
+                key={outputValue.url}
+                controls
+                className="w-full rounded"
+                src={outputValue.url}
+              />
+            )}
+            {outputValue?.error && (
+              <div className="text-red-500 text-sm">{outputValue.error}</div>
+            )}
+          </div>
+        );
+      
       default:
         return null;
     }
@@ -163,7 +180,7 @@ export function NodeProperties({ nodeType, properties, onChange, output, nodeNam
         />
       </div>
 
-      {nodeType.properties.filter(prop => prop.name === 'model' || prop.name === 'prompt').map(prop => (
+      {nodeType.properties.filter(prop => prop.name === 'model' || prop.name === 'prompt'|| prop.name === 'imageSource'|| prop.name === 'audioSource').map(prop => (
         <div key={prop.name}>
           <label className="block text-sm font-medium text-gray-700 mb-1">
             {prop.name}
@@ -182,7 +199,7 @@ export function NodeProperties({ nodeType, properties, onChange, output, nodeNam
 
       {isOpen && (
         <div className="mt-2">
-          {nodeType.properties.filter(prop => prop.name !== 'model' && prop.name !== 'prompt').map(prop => (
+          {nodeType.properties.filter(prop => prop.name !== 'model' && prop.name !== 'prompt'&& prop.name !== 'imageSource'&& prop.name !== 'audioSource').map(prop => (
             <div key={prop.name}>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 {prop.name}

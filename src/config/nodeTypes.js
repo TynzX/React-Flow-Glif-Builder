@@ -116,5 +116,33 @@ export const nodeTypes = [
         default: 'MP3'
       }
     ],
+  },
+  {
+    id: 'video-composition',
+    name: 'Video Composition',
+    description: 'Compose video with image, audio and optional captions',
+    icon: '🎬',
+    inputs: 1,
+    outputs: 1,
+    properties: [
+      { 
+        name: 'imageSource', 
+        type: 'text', 
+        required: true,
+        description: 'URL or path to the image'
+      },
+      { 
+        name: 'audioSource', 
+        type: 'text', 
+        required: true,
+        description: 'URL or path to the audio file'
+      },
+      { 
+        name: 'enableCaptions', 
+        type: 'boolean', 
+        default: false,
+        description: 'Enable or disable captions'
+      }
+    ],
   }
 ];
