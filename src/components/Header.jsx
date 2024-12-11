@@ -18,13 +18,10 @@ export function Header({ onAddNode }) {
         properties: node.data.properties
       });
 
-      // Get input nodes connected to this node
       const inputEdges = edges.filter(edge => edge.target === node.id);
       const inputNodes = inputEdges.map(edge => 
         nodes.find(n => n.id === edge.source)
       );
-
-      // Process input nodes first and collect their outputs
       const inputResults = await Promise.all(
         inputNodes.map(async (inputNode) => {
           if (!getNodeOutput(inputNode.data.name)) {
@@ -34,30 +31,62 @@ export function Header({ onAddNode }) {
         })
       );
 
-      // Get the actual prompt, replacing any references to other nodes
-      let processedPrompt = node.data.properties.prompt;
-      
-      // Replace {nodeName.output} placeholders with actual values
-      const placeholderRegex = /{([^}]+)\.output}/g;
-      processedPrompt = processedPrompt.replace(placeholderRegex, (match, nodeName) => {
-        const sourceNode = nodes.find(n => n.data.name === nodeName);
-        if (!sourceNode) {
-          console.warn(`Node "${nodeName}" not found`);
-          return match;
-        }
-        
-        const output = getNodeOutput(nodeName);
-        console.log('Using output from node:', {
-          nodeName,
-          output
-        });
-        return output || match;
-      });
-
       let response;
-      // Handle different node types
       switch (node.data.type) {
+        case 'video-composition':
+          const imageOutput = node.data.properties.imageSource 
+            ? JSON.parse(node.data.properties.imageSource.replace(/'/g, '"').replace(/\n/g, ''))
+            : getNodeOutput(inputNodes.find(n => n.data.type === 'image-generation')?.data.name);
+
+          const audioOutput = node.data.properties.audioSource 
+            ? JSON.parse(node.data.properties.audioSource)
+            : getNodeOutput(inputNodes.find(n => n.data.type === 'audio-generation')?.data.name);
+
+          if (!imageOutput || !audioOutput) {
+            throw new Error('Video composition requires both image and audio inputs');
+          }
+          const videoPayload = {
+            imageSources: Array.isArray(imageOutput) ? imageOutput : [imageOutput],
+            audioSources: {
+              audioUrl: audioOutput.audioUrl,
+              audioDuration: audioOutput.duration || 0
+            },
+            height: node.data.properties.height || 720,
+            width: node.data.properties.width || 1280,
+            topic: node.data.properties.topic || 'cat'
+          };
+
+          console.log('Sending video composition request:', videoPayload);
+          
+          response = await axios.post('http://localhost:3000/create-video-with-subtitles', videoPayload);
+          if (response.data?.videoUrl) {
+            response.data = {
+              url: response.data.videoUrl,
+              type: 'video'
+            };
+          }
+          break;
+
         case 'text-generation':
+          let processedPrompt = node.data.properties.prompt;
+          if (processedPrompt) {
+            const placeholderRegex = /{([^}]+)\.output}/g;
+            processedPrompt = processedPrompt.replace(placeholderRegex, (match, nodeName) => {
+              const sourceNode = nodes.find(n => n.data.name === nodeName);
+              if (!sourceNode) {
+                console.warn(`Node "${nodeName}" not found`);
+                return match;
+              }
+              
+              const output = getNodeOutput(nodeName);
+              console.log('Using output from node:', {
+                nodeName,
+                output
+              });
+              return output || match;
+            });
+          }
+
           response = await axios.post('http://localhost:3000/chat-completion', {
             ...node.data.properties,
             prompt: processedPrompt,
@@ -66,40 +95,7 @@ export function Header({ onAddNode }) {
           });
           break;
 
-        case 'image-generation':
-          try {
-            const promptText = processedPrompt.trim();
-            let imagePrompts;
-
-            if (promptText.startsWith('[')) {
-              const cleanJson = promptText
-                .replace(/\n/g, '') // Remove newlines
-                .replace(/\r/g, '') // Remove carriage returns
-                .replace(/\\n/g, '') // Remove escaped newlines
-                .replace(/\s+/g, ' '); // Replace multiple spaces with single space
-              
-              console.log('Attempting to parse JSON:', cleanJson);
-              
-              try {
-                imagePrompts = JSON.parse(cleanJson);
-              } catch (parseError) {
-                console.error('JSON Parse Error:', parseError);
-                console.log('Invalid JSON string:', cleanJson);
-                throw new Error('Failed to parse prompt JSON: ' + parseError.message);
-              }
-            } else {
-              // Single prompt
-              imagePrompts = [{ prompt: promptText }];
-            }
-
-            console.log('Sending to Leonardo API:', imagePrompts);
-            
-            response = await axios.post('http://localhost:3000/generate-images-leonardo', imagePrompts);
-          } catch (error) {
-            console.error('Error processing image prompts:', error);
-            throw new Error(`Failed to process image prompts: ${error.message}`);
-          }
-          break;
+        // audio wala yaha pe
 
         default:
           throw new Error(`Unsupported node type: ${node.data.type}`);
