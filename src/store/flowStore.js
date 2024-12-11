@@ -92,4 +92,31 @@ export const useFlowStore = create((set, get) => ({
     if (!node) return null;
     return get().nodeOutputs[node.id];
   },
+  updateNodeSequence: (newSequence) => {
+    set((state) => ({
+      ...state,
+      nodes: newSequence.map((node, index) => ({
+        ...node,
+        position: { ...node.position },
+        data: { ...node.data }
+      }))
+    }));
+  },
+  deleteSelectedNodes: () => {
+    const selectedNodes = get().nodes.filter(node => node.selected);
+    const selectedNodeIds = selectedNodes.map(node => node.id);
+    
+    set(state => ({
+      nodes: state.nodes.filter(node => !selectedNodeIds.includes(node.id)),
+      edges: state.edges.filter(
+        edge => !selectedNodeIds.includes(edge.source) && !selectedNodeIds.includes(edge.target)
+      ),
+      nodeOutputs: Object.fromEntries(
+        Object.entries(state.nodeOutputs).filter(([id]) => !selectedNodeIds.includes(id))
+      )
+    }));
+  },
+  getNodesInSequence: () => {
+    return get().nodes;
+  },
 }));

@@ -135,11 +135,9 @@ export function Header({ onAddNode }) {
     // Check for blank prompts
     const nodeWithBlankPrompt = nodes.find(node => {
       const properties = node.data.properties || {};
-      // Check for text-generation and image-generation nodes
       if (['text-generation', 'image-generation'].includes(node.data.type)) {
         return !properties.prompt || properties.prompt.trim() === '';
       }
-      // Check for audio-generation nodes
       if (node.data.type === 'audio-generation') {
         return !properties.text || properties.text.trim() === '';
       }
@@ -153,16 +151,18 @@ export function Header({ onAddNode }) {
 
     setIsRunning(true);
     try {
-      // Sort nodes based on dependencies
-      const sortedNodes = [...nodes].sort((a, b) => {
-        const aIsInput = edges.some(e => e.target === b.id && e.source === a.id);
-        const bIsInput = edges.some(e => e.target === a.id && e.source === b.id);
-        return aIsInput ? -1 : bIsInput ? 1 : 0;
-      });
-
-      // Process each node in order
-      for (const node of sortedNodes) {
-        await processNode(node);
+      // Get nodes in sequence order
+      const orderedNodes = [...nodes];
+      
+      // Process each node in sequence
+      for (const node of orderedNodes) {
+        try {
+          await processNode(node);
+        } catch (error) {
+          console.error(`Error processing node ${node.id}:`, error);
+          alert(`Error processing node "${node.data.name || 'Unnamed Node'}": ${error.message}`);
+          break;
+        }
       }
     } catch (error) {
       console.error('Error running flow:', error);

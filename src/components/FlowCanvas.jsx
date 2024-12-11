@@ -20,13 +20,17 @@ export function FlowCanvas() {
   } = useFlowStore();
 
   const onKeyDown = useCallback((event) => {
-    if (event.key === 'Delete' || event.key === 'Backspace') {
+    if ((event.key === 'Delete' || event.key === 'Backspace') && document.activeElement === event.target) {
       deleteSelectedNodes();
     }
   }, [deleteSelectedNodes]);
 
   return (
-    <div className="w-full h-full" tabIndex={0} onKeyDown={onKeyDown}>
+    <div 
+      className="w-full h-full" 
+      tabIndex={-1} 
+      onKeyDown={onKeyDown}
+    >
       <ReactFlow
         nodes={nodes}
         edges={edges}
@@ -35,6 +39,7 @@ export function FlowCanvas() {
         onConnect={onConnect}
         nodeTypes={nodeTypes}
         fitView
+        deleteKeyCode={['Backspace', 'Delete']}
       >
         <Background />
         <Controls />
