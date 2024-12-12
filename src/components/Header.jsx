@@ -48,22 +48,58 @@ export function Header({ onAddNode }) {
       let response;
       switch (node.data.type) {
         case 'video-composition':
-          const imageOutput = node.data.properties.imageSource 
-            ? JSON.parse(node.data.properties.imageSource.replace(/'/g, '"').replace(/\n/g, ''))
+          // Process imageSource placeholder
+          let processedImageSource = node.data.properties.imageSource;
+          if (processedImageSource) {
+            const placeholderRegex = /{([^}]+)\.output}/g;
+            processedImageSource = processedImageSource.replace(placeholderRegex, (match, nodeName) => {
+              const sourceNode = nodes.find(n => n.data.name === nodeName);
+              if (!sourceNode) {
+                console.warn(`Node "${nodeName}" not found`);
+                return match;
+              }
+              const output = getNodeOutput(nodeName);
+              return JSON.stringify(output) || match;
+            });
+          }
+
+          // Process audioSource placeholder
+          let processedAudioSource = node.data.properties.audioSource;
+          if (processedAudioSource) {
+            const placeholderRegex = /{([^}]+)\.output}/g;
+            processedAudioSource = processedAudioSource.replace(placeholderRegex, (match, nodeName) => {
+              const sourceNode = nodes.find(n => n.data.name === nodeName);
+              if (!sourceNode) {
+                console.warn(`Node "${nodeName}" not found`);
+                return match;
+              }
+              const output = getNodeOutput(nodeName);
+              return JSON.stringify(output) || match;
+            });
+          }
+
+          const imageOutput = processedImageSource 
+            ? JSON.parse(processedImageSource)
             : getNodeOutput(inputNodes.find(n => n.data.type === 'image-generation')?.data.name);
 
-          const audioOutput = node.data.properties.audioSource 
-            ? JSON.parse(node.data.properties.audioSource)
+          const audioOutput = processedAudioSource 
+            ? JSON.parse(processedAudioSource)
             : getNodeOutput(inputNodes.find(n => n.data.type === 'audio-generation')?.data.name);
 
           if (!imageOutput || !audioOutput) {
             throw new Error('Video composition requires both image and audio inputs');
           }
+
+          // Extract image URLs from the nested structure
+          const imageUrls = Array.isArray(imageOutput) && imageOutput[0]?.imageUrls 
+            ? imageOutput[0].imageUrls 
+            : (Array.isArray(imageOutput) ? imageOutput : [imageOutput]);
+
           const videoPayload = {
-            imageSources: Array.isArray(imageOutput) ? imageOutput : [imageOutput],
+            imageSources: imageUrls,  // Now it's a direct array of image URLs
             audioSources: {
               audioUrl: audioOutput.audioUrl,
-              audioDuration: audioOutput.duration || 0
+              audioDuration: audioOutput.duration || 0  // Try both property names
             },
             height: node.data.properties.height || 720,
             width: node.data.properties.width || 1280,
@@ -110,6 +146,79 @@ export function Header({ onAddNode }) {
           break;
 
         // audio wala yaha pe
+        
+        case 'image-generation':
+          try {
+            let processedPrompt = node.data.properties.prompt;
+            if (processedPrompt) {
+              const placeholderRegex = /{([^}]+)\.output}/g;
+              processedPrompt = processedPrompt.replace(placeholderRegex, (match, nodeName) => {
+                const sourceNode = nodes.find(n => n.data.name === nodeName);
+                if (!sourceNode) {
+                  console.warn(`Node "${nodeName}" not found`);
+                  return match;
+                }
+                
+                const output = getNodeOutput(nodeName);
+                return output || match;
+              });
+            }
+
+            const promptText = processedPrompt.trim();
+            let imagePrompts;
+
+            if (promptText.startsWith('[')) {
+              const cleanJson = promptText
+                .replace(/\n/g, '') // Remove newlines
+                .replace(/\r/g, '') // Remove carriage returns
+                .replace(/\\n/g, '') // Remove escaped newlines
+                .replace(/\s+/g, ' '); // Replace multiple spaces with single space
+              
+              console.log('Attempting to parse JSON:', cleanJson);
+              
+              try {
+                imagePrompts = JSON.parse(cleanJson);
+              } catch (parseError) {
+                console.error('JSON Parse Error:', parseError);
+                console.log('Invalid JSON string:', cleanJson);
+                throw new Error('Failed to parse prompt JSON: ' + parseError.message);
+              }
+            } else {
+              // Single prompt
+              imagePrompts = [{ prompt: promptText }];
+            }
+
+            console.log('Sending to Leonardo API:', imagePrompts);
+            
+            response = await axios.post('http://localhost:3000/generate-images-leonardo', imagePrompts);
+          } catch (error) {
+            console.error('Error processing image prompts:', error);
+            throw new Error(`Failed to process image prompts: ${error.message}`);
+          }
+          break;
+
+        case 'audio-generation':
+          let processedProperties = { ...node.data.properties };
+          if (processedProperties.text) {
+            const placeholderRegex = /{([^}]+)\.output}/g;
+            processedProperties.text = processedProperties.text.replace(placeholderRegex, (match, nodeName) => {
+              const sourceNode = nodes.find(n => n.data.name === nodeName);
+              if (!sourceNode) {
+                console.warn(`Node "${nodeName}" not found`);
+                return match;
+              }
+              
+              const output = getNodeOutput(nodeName);
+              return output || match;
+            });
+          }
+
+          response = await axios.post('http://localhost:3000/audio-generation', {
+            ...processedProperties,
+            nodeId: node.id,
+            nodeType: node.data.type
+          });
+          break;
 
         default:
           throw new Error(`Unsupported node type: ${node.data.type}`);
