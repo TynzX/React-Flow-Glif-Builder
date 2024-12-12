@@ -294,20 +294,33 @@ export function Header({ onAddNode }) {
     }
   };
 
-  const handleSaveFlow = (flowName) => {
+  const handleSaveFlow = async (flowName) => {
     if (!flowName) return;
     
     const flowData = {
-      nodes,
-      edges
+      name: flowName,
+      data: {
+        nodes,
+        edges
+      }
     };
     
-    localStorage.setItem(`flow_${flowName}`, JSON.stringify(flowData));
-    setDialogOpen(false);
-    toast.success(`Flow "${flowName}" saved successfully!`);
+    try {
+      await axios.post('http://localhost:3000/api/flows', flowData);
+      setDialogOpen(false);
+      toast.success(`Flow "${flowName}" saved successfully!`);
+    } catch (error) {
+      console.error('Error saving flow:', error);
+      toast.error(`Failed to save flow: ${error.message}`);
+    }
   };
 
   const handleImportFlow = (flow) => {
+    if (!flow.data || !flow.data.nodes || !flow.data.edges) {
+      toast.error('Invalid flow data structure');
+      return;
+    }
+    
     setNodes(flow.data.nodes);
     setEdges(flow.data.edges);
     setDialogOpen(false);

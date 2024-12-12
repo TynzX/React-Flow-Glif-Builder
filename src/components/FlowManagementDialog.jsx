@@ -1,21 +1,34 @@
 import React, { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import { Button } from './ui/Button';
+import axios from 'axios';
 
 export function FlowManagementDialog({ isOpen, onClose, onImport, mode }) {
   const [flowName, setFlowName] = useState('');
   const [savedFlows, setSavedFlows] = useState([]);
+  const [flows, setFlows] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
-    // Load saved flows from localStorage
-    const flows = Object.keys(localStorage)
-      .filter(key => key.startsWith('flow_'))
-      .map(key => ({
-        name: key.replace('flow_', ''),
-        data: JSON.parse(localStorage.getItem(key))
-      }));
-    setSavedFlows(flows);
-  }, [isOpen]);
+    if (isOpen && mode === 'import') {
+      loadFlows();
+    }
+  }, [isOpen, mode]);
+
+  const loadFlows = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await axios.get('http://localhost:3000/api/flows');
+      setFlows(response.data);
+    } catch (error) {
+      console.error('Error loading flows:', error);
+      setError('Failed to load flows');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   if (!isOpen) return null;
 
@@ -60,22 +73,23 @@ export function FlowManagementDialog({ isOpen, onClose, onImport, mode }) {
           </div>
         ) : (
           <div className="space-y-4">
-            {savedFlows.length === 0 ? (
-              <p className="text-gray-500 text-center py-4">No saved flows found</p>
-            ) : (
-              savedFlows.map((flow) => (
-                <button
-                  key={flow.name}
-                  onClick={() => onImport(flow)}
-                  className="w-full p-4 text-left border rounded hover:bg-gray-50"
-                >
-                  <h3 className="font-medium">{flow.name}</h3>
-                  <p className="text-sm text-gray-500">
-                    {flow.data.nodes.length} nodes
-                  </p>
-                </button>
-              ))
+            {loading && <div>Loading flows...</div>}
+            {error && <div className="text-red-500">{error}</div>}
+            {!loading && !error && flows.length === 0 && (
+              <div>No saved flows found</div>
             )}
+            {flows.map((flow) => (
+              <div
+                key={flow._id}
+                className="p-4 border rounded hover:bg-gray-50 cursor-pointer"
+                onClick={() => onImport(flow)}
+              >
+                <div className="font-medium">{flow.name}</div>
+                <div className="text-sm text-gray-500">
+                  Created: {new Date(flow.createdAt).toLocaleDateString()}
+                </div>
+              </div>
+            ))}
           </div>
         )}
       </div>
