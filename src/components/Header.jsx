@@ -1,14 +1,28 @@
 import React, { useState } from 'react';
-import { Play, Plus } from 'lucide-react';
+import { Play, Plus, Save, Upload } from 'lucide-react';
 import { Button } from './ui/Button';
 import { useFlowStore } from '../store/flowStore';
+import { FlowManagementDialog } from './FlowManagementDialog';
 import axios from 'axios';
 import { Spinner } from './ui/Spinner';
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 export function Header({ onAddNode }) {
   const [isRunning, setIsRunning] = useState(false);
-  const { nodes, edges, setNodeOutput, updateNodeProperties, getNodeOutput } = useFlowStore();
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [dialogMode, setDialogMode] = useState('save');
   
+  const { 
+    nodes, 
+    edges, 
+    setNodeOutput, 
+    updateNodeProperties, 
+    getNodeOutput,
+    setNodes,
+    setEdges 
+  } = useFlowStore();
+
   const processNode = async (node) => {
     try {
       console.log('Processing node:', {
@@ -171,32 +185,96 @@ export function Header({ onAddNode }) {
     }
   };
 
+  const handleSaveFlow = (flowName) => {
+    if (!flowName) return;
+    
+    const flowData = {
+      nodes,
+      edges
+    };
+    
+    localStorage.setItem(`flow_${flowName}`, JSON.stringify(flowData));
+    setDialogOpen(false);
+    toast.success(`Flow "${flowName}" saved successfully!`);
+  };
+
+  const handleImportFlow = (flow) => {
+    setNodes(flow.data.nodes);
+    setEdges(flow.data.edges);
+    setDialogOpen(false);
+    toast.success(`Flow "${flow.name}" imported successfully!`);
+  };
+
   return (
-    <div className="p-4 bg-white border-b flex justify-between items-center">
-      <div className="flex items-center gap-4">
-        <h1 className="text-xl font-semibold">GLIF Builder</h1>
-        <Button 
-          onClick={handleRun} 
-          className="bg-black hover:bg-gray-800 min-w-[120px]"
-          disabled={isRunning}
-        >
-          {isRunning ? (
-            <>
-              <Spinner />
-              Processing...
-            </>
-          ) : (
-            <>
-              <Play className="w-4 h-4 mr-2" />
-              Run Flow
-            </>
-          )}
-        </Button>
+    <>
+      <div className="p-4 bg-white border-b flex justify-between items-center">
+        <div className="flex items-center gap-4">
+          <h1 className="text-xl font-semibold">GLIF Builder</h1>
+          <Button 
+            onClick={handleRun} 
+            className="bg-black hover:bg-gray-800 min-w-[120px]"
+            disabled={isRunning}
+          >
+            {isRunning ? (
+              <>
+                <Spinner />
+                Processing...
+              </>
+            ) : (
+              <>
+                <Play className="w-4 h-4 mr-2" />
+                Run Flow
+              </>
+            )}
+          </Button>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button 
+            variant="secondary" 
+            onClick={() => {
+              setDialogMode('save');
+              setDialogOpen(true);
+            }}
+          >
+            <Save className="w-4 h-4 mr-2" />
+            Save Flow
+          </Button>
+          <Button 
+            variant="secondary" 
+            onClick={() => {
+              setDialogMode('import');
+              setDialogOpen(true);
+            }}
+          >
+            <Upload className="w-4 h-4 mr-2" />
+            Import Flow
+          </Button>
+          <Button onClick={onAddNode}>
+            <Plus className="w-4 h-4 mr-2" />
+            Add Node
+          </Button>
+        </div>
       </div>
-      <Button onClick={onAddNode} className="flex items-center gap-2">
-        <Plus className="w-4 h-4" />
-        Add Node
-      </Button>
-    </div>
+
+      <FlowManagementDialog
+        isOpen={dialogOpen}
+        mode={dialogMode}
+        onClose={handleSaveFlow}
+        onImport={handleImportFlow}
+      />
+
+      <ToastContainer
+        position="bottom-right"
+        autoClose={3000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="light"
+      />
+    </>
   );
 }

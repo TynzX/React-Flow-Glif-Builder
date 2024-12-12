@@ -119,4 +119,10 @@ export const useFlowStore = create((set, get) => ({
   getNodesInSequence: () => {
     return get().nodes;
   },
+  setNodes: (nodes) => {
+    set({ nodes });
+  },
+  setEdges: (edges) => {
+    set({ edges });
+  },
 }));
