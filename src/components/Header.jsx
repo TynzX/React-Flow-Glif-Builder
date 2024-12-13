@@ -96,14 +96,15 @@ export function Header({ onAddNode }) {
             : (Array.isArray(imageOutput) ? imageOutput : [imageOutput]);
 
           const videoPayload = {
-            imageSources: imageUrls,  // Now it's a direct array of image URLs
+            imageSources: imageUrls,
             audioSources: {
               audioUrl: audioOutput.audioUrl,
-              audioDuration: audioOutput.duration || 0  // Try both property names
+              audioDuration: audioOutput.duration || 30.00,
+              type: audioOutput.type,
             },
             height: node.data.properties.height || 720,
             width: node.data.properties.width || 1280,
-            topic: node.data.properties.topic || 'cat'
+            topic: node.data.properties.topic || 'flow'
           };
 
           console.log('Sending video composition request:', videoPayload);
