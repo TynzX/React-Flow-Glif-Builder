@@ -60,9 +60,12 @@ export const useFlowStore = create((set, get) => ({
       },
     };
 
-    set({
-      nodes: [...get().nodes, newNode],
-    });
+    set(state => ({
+      nodes: [...state.nodes, newNode],
+    }));
+
+    // Connect nodes after adding a new one
+    get().connectNodesInSequence();
   },
   updateNodeName: (nodeId, name) => {
     // Check for duplicate names
@@ -138,5 +141,37 @@ export const useFlowStore = create((set, get) => ({
   },
   setEdges: (edges) => {
     set({ edges });
+  },
+  connectNodesInSequence: () => {
+    const nodes = get().nodes;
+    if (nodes.length < 2) return;
+
+    // Clear existing edges
+    set({ edges: [] });
+
+    // Create new edges based on sequence
+    const newEdges = [];
+    for (let i = 0; i < nodes.length - 1; i++) {
+      const sourceNode = nodes[i];
+      const targetNode = nodes[i + 1];
+
+      newEdges.push({
+        id: `${sourceNode.id}-${targetNode.id}`,
+        source: sourceNode.id,
+        target: targetNode.id,
+        type: 'smoothstep',
+        animated: true,
+        style: {
+          stroke: '#374151',
+          strokeWidth: 2,
+        },
+        markerEnd: {
+          type: MarkerType.ArrowClosed,
+          color: '#374151',
+        },
+      });
+    }
+
+    set({ edges: newEdges });
   },
 }));

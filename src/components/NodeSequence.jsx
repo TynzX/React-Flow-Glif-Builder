@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useFlowStore } from '../store/flowStore';
 import { nodeTypes } from '../config/nodeTypes';
 import { ArrowDown, GripVertical } from 'lucide-react';
@@ -7,6 +7,7 @@ import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
 export function NodeSequence() {
   const nodes = useFlowStore((state) => state.nodes);
   const updateNodeSequence = useFlowStore((state) => state.updateNodeSequence);
+  const connectNodesInSequence = useFlowStore((state) => state.connectNodesInSequence);
 
   const onDragEnd = (result) => {
     if (!result.destination) return;
@@ -16,7 +17,14 @@ export function NodeSequence() {
     items.splice(result.destination.index, 0, reorderedItem);
 
     updateNodeSequence(items);
+    connectNodesInSequence();
   };
+
+  useEffect(() => {
+    if (nodes.length >= 2) {
+      connectNodesInSequence();
+    }
+  }, [nodes.length, connectNodesInSequence]);
 
   return (
     <div className="w-64 bg-white border-r p-4">

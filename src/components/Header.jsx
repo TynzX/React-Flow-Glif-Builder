@@ -381,7 +381,12 @@ export function Header({ onAddNode }) {
       <FlowManagementDialog
         isOpen={dialogOpen}
         mode={dialogMode}
-        onClose={handleSaveFlow}
+        onClose={(flowName) => {
+          if (flowName) {
+            handleSaveFlow(flowName);
+          }
+          setDialogOpen(false);
+        }}
         onImport={handleImportFlow}
       />
 
