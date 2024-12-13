@@ -3,6 +3,7 @@ import {
   applyNodeChanges,
   applyEdgeChanges,
   addEdge,
+  MarkerType,
 } from 'reactflow';
 
 const generateId = () => Math.random().toString(36).substr(2, 9);
@@ -23,8 +24,21 @@ export const useFlowStore = create((set, get) => ({
     });
   },
   onConnect: (connection) => {
+    const newEdge = {
+      ...connection,
+      type: 'smoothstep',
+      animated: true,
+      style: {
+        stroke: '#374151',
+        strokeWidth: 2,
+      },
+      markerEnd: {
+        type: MarkerType.ArrowClosed,
+        color: '#374151',
+      },
+    };
     set({
-      edges: addEdge(connection, get().edges),
+      edges: addEdge(newEdge, get().edges),
     });
   },
   addNewNode: (type, position) => {
